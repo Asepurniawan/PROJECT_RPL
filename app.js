@@ -99,8 +99,14 @@ const elements = {
   basketEmpty: document.getElementById("basket-empty"),
   basketList: document.getElementById("basket-list"),
   orderNote: document.getElementById("order-note"),
+  paymentMethod: document.getElementById("payment-method"),
+  paymentConfirm: document.getElementById("payment-confirm"),
   submitOrder: document.getElementById("submit-order"),
   customerStatus: document.getElementById("customer-status"),
+  receiptModal: document.getElementById("receipt-modal"),
+  receiptContent: document.getElementById("receipt-content"),
+  closeReceipt: document.getElementById("close-receipt"),
+  toastStack: document.getElementById("toast-stack"),
   subtotal: document.getElementById("subtotal"),
   tax: document.getElementById("tax"),
   total: document.getElementById("total"),
@@ -169,6 +175,59 @@ function formatMoney(value) {
   return currency.format(value || 0);
 }
 
+function showToast({ title, message, tone = "info" }) {
+  if (!elements.toastStack) {
+    return;
+  }
+
+  const toast = document.createElement("article");
+  toast.className = `toast ${tone}`;
+  toast.innerHTML = `<strong>${title}</strong><span>${message}</span>`;
+  elements.toastStack.appendChild(toast);
+
+  window.setTimeout(() => {
+    toast.remove();
+  }, 4200);
+}
+
+function renderReceipt(order) {
+  if (!elements.receiptContent || !elements.receiptModal) {
+    return;
+  }
+
+  const itemsMarkup = order.items
+    .map((item) => `<div class="order-line"><span>${item.qty} x ${item.menuName}</span><strong>${formatMoney(item.lineTotal)}</strong></div>`)
+    .join("");
+
+  elements.receiptContent.innerHTML = `
+    <div class="receipt-box receipt-grid">
+      <div class="order-line"><span>Kode Nota</span><strong>${order.orderCode}</strong></div>
+      <div class="order-line"><span>Meja</span><strong>${order.tableNumber}</strong></div>
+      <div class="order-line"><span>Waktu</span><strong>${formatTime(order.createdAt)}</strong></div>
+      <div class="order-line"><span>Metode Bayar</span><strong>${order.paymentMethod || "-"}</strong></div>
+      <div class="section-divider"></div>
+      ${itemsMarkup}
+      <div class="section-divider"></div>
+      <div class="order-line"><span>Subtotal</span><strong>${formatMoney(order.subtotal)}</strong></div>
+      <div class="order-line"><span>Pajak</span><strong>${formatMoney(order.tax)}</strong></div>
+      <div class="order-line"><span>Total Dibayar</span><strong>${formatMoney(order.total)}</strong></div>
+      ${order.note ? `<div class="note">Catatan: ${order.note}</div>` : ""}
+      <div class="note">Status: Lunas</div>
+    </div>
+  `;
+
+  elements.receiptModal.classList.add("open");
+  elements.receiptModal.setAttribute("aria-hidden", "false");
+}
+
+function closeReceiptModal() {
+  if (!elements.receiptModal) {
+    return;
+  }
+  elements.receiptModal.classList.remove("open");
+  elements.receiptModal.setAttribute("aria-hidden", "true");
+}
+
 function normalizeToken(value) {
   return String(value || "").trim().toUpperCase();
 }
@@ -211,7 +270,7 @@ function buildOrderCode() {
   return `ORD-${String(orderNumber).padStart(3, "0")}`;
 }
 
-function createOrder({ qrToken, note, items }) {
+function createOrder({ qrToken, note, items, paymentMethod }) {
   const table = findTableByToken(qrToken);
   if (!table) {
     throw new Error("Token QR tidak valid atau meja belum terdaftar.");
@@ -242,7 +301,8 @@ function createOrder({ qrToken, note, items }) {
     tax: totals.tax,
     total: totals.total,
     status: "pending",
-    paymentStatus: "unpaid",
+    paymentMethod,
+    paymentStatus: "paid",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -261,6 +321,14 @@ function updateOrderStatus(orderId, nextStatus) {
   order.status = nextStatus;
   order.updatedAt = new Date().toISOString();
   emitUpdate("order-status-updated", { orderId, nextStatus });
+
+  if (nextStatus === "served") {
+    showToast({
+      title: "Pesanan Selesai",
+      message: `${order.orderCode} untuk meja ${order.tableNumber} sudah selesai.`,
+      tone: "success",
+    });
+  }
 }
 
 function updatePaymentStatus(orderId, nextStatus) {
@@ -476,6 +544,7 @@ function renderCashier() {
       </div>
       <div class="section-divider"></div>
       <div class="note">Total: <strong>${formatMoney(order.total)}</strong></div>
+      <div class="note">Metode: ${order.paymentMethod || "-"}</div>
       <div class="note">Pembayaran: ${order.paymentStatus}</div>
       <div class="queue-actions"></div>
     `;
@@ -510,6 +579,17 @@ function renderAll() {
 
 function handleSubmitOrder() {
   try {
+    const selectedPaymentMethod = String(elements.paymentMethod.value || "").trim();
+    const isPaymentConfirmed = Boolean(elements.paymentConfirm.checked);
+
+    if (!selectedPaymentMethod) {
+      throw new Error("Pilih metode pembayaran terlebih dahulu.");
+    }
+
+    if (!isPaymentConfirmed) {
+      throw new Error("Konfirmasi pembayaran wajib dicentang sebelum kirim pesanan.");
+    }
+
     const items = Array.from(draft.items.entries())
       .map(([menuId, qty]) => {
         const menu = findMenu(menuId);
@@ -528,13 +608,22 @@ function handleSubmitOrder() {
     const order = createOrder({
       qrToken: draft.qrToken,
       note: elements.orderNote.value.trim(),
+      paymentMethod: selectedPaymentMethod,
       items,
     });
 
     draft.items.clear();
     elements.orderNote.value = "";
+    elements.paymentMethod.value = "";
+    elements.paymentConfirm.checked = false;
     hydrateDraftToken(order.qrToken);
-    elements.customerStatus.textContent = `${order.orderCode} berhasil dikirim ke dapur dan kasir.`;
+    elements.customerStatus.textContent = `${order.orderCode} berhasil dibayar dan dikirim ke dapur serta kasir.`;
+    renderReceipt(order);
+    showToast({
+      title: "Pesanan Dibuat",
+      message: `${order.orderCode} berhasil dibuat dan masuk antrean dapur.`,
+      tone: "info",
+    });
     renderAll();
   } catch (error) {
     elements.customerStatus.textContent = error.message;
@@ -592,6 +681,18 @@ function attachEvents() {
   });
 
   elements.submitOrder.addEventListener("click", handleSubmitOrder);
+
+  if (elements.closeReceipt) {
+    elements.closeReceipt.addEventListener("click", closeReceiptModal);
+  }
+
+  if (elements.receiptModal) {
+    elements.receiptModal.addEventListener("click", (event) => {
+      if (event.target === elements.receiptModal) {
+        closeReceiptModal();
+      }
+    });
+  }
 
   window.addEventListener("storage", syncFromStorage);
   window.addEventListener("qr-cafe:update", renderAll);

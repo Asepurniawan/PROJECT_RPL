@@ -40,6 +40,10 @@ textarea {
   font: inherit;
 }
 
+select {
+  font: inherit;
+}
+
 .ambient {
   position: fixed;
   inset: auto;
@@ -318,6 +322,38 @@ textarea::placeholder {
   color: #7f8da8;
 }
 
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  padding: 14px 16px;
+  border-radius: 18px;
+  outline: none;
+}
+
+.payment-box {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.payment-box label {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkline input {
+  width: 18px;
+  height: 18px;
+}
+
 .summary-box {
   display: grid;
   gap: 12px;
@@ -505,6 +541,95 @@ textarea::placeholder {
   height: 1px;
   background: var(--line);
   margin: 10px 0;
+}
+
+.receipt-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 8, 15, 0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  padding: 16px;
+}
+
+.receipt-modal.open {
+  display: flex;
+}
+
+.receipt-card {
+  width: min(560px, 100%);
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(10, 16, 29, 0.95);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.receipt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.receipt-box {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.receipt-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.toast-stack {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 90;
+  display: grid;
+  gap: 10px;
+  width: min(340px, calc(100vw - 36px));
+}
+
+.toast {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(10, 16, 29, 0.94);
+  color: var(--text);
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  animation: toast-in 0.25s ease;
+}
+
+.toast strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.toast.success {
+  border-color: rgba(110, 231, 165, 0.45);
+}
+
+.toast.info {
+  border-color: rgba(88, 213, 255, 0.45);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 code {

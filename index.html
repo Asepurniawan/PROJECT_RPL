@@ -109,7 +109,21 @@
             <article>
               <h3>Catatan Pelanggan</h3>
               <textarea id="order-note" rows="6" placeholder="Contoh: tanpa es, saus dipisah, pedas sedang"></textarea>
-              <button id="submit-order" class="primary full" type="button">Kirim ke Dapur</button>
+              <div class="payment-box">
+                <label for="payment-method">Metode Pembayaran (Wajib)</label>
+                <select id="payment-method">
+                  <option value="">Pilih metode pembayaran</option>
+                  <option value="qris">QRIS</option>
+                  <option value="ewallet">E-Wallet</option>
+                  <option value="debit">Kartu Debit</option>
+                  <option value="credit">Kartu Kredit</option>
+                </select>
+                <label class="checkline">
+                  <input id="payment-confirm" type="checkbox" />
+                  Saya sudah menyelesaikan pembayaran.
+                </label>
+              </div>
+              <button id="submit-order" class="primary full" type="button">Bayar & Kirim ke Dapur</button>
               <p class="meta" id="customer-status">Status pesanan akan tampil setelah dikirim.</p>
             </article>
           </div>
@@ -142,6 +156,18 @@
         </section>
       </section>
     </main>
+
+    <section id="receipt-modal" class="receipt-modal" aria-hidden="true">
+      <div class="receipt-card">
+        <div class="receipt-head">
+          <h3>Nota Pembayaran</h3>
+          <button id="close-receipt" class="ghost" type="button">Tutup</button>
+        </div>
+        <div id="receipt-content"></div>
+      </div>
+    </section>
+
+    <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
     <template id="menu-card-template">
       <article class="menu-card">
